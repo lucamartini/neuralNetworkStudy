@@ -1,75 +1,40 @@
 #include <iostream>
 #include <vector>
-
-#include "random_helper.h"
-#include "perceptron.h"
-#include "trainer.h"
+#include <memory>
 
 #include <TEfficiency.h>
 #include <TCanvas.h>
 
-RandomHelper rh;
-
-float width(500);
-float height(500);
-
-// the truth
-float f(float x) {
-  return 2*x+1;
-}
-
-//float f(float x) {
-//  return 0;
-//}
-
-std::vector<Trainer*> createTrainingDataset (int size) {
-
-    std::vector<Trainer*> training(size);
-
-    for (int i = 0; i < training.size(); i++) {
-      float random_x = rh.getRandomIn(-width/2, width/2);
-      float random_y = rh.getRandomIn(-height/2, height/2);
-
-      int isPointAbove = (random_y > f(random_x)) ? 1 : -1;
-
-      training.at(i) = new Trainer(random_x, random_y, isPointAbove);
-   }
-    return training;
-}
+#include "src/neuralnetwork.h"
+#include "src/linearfunction.h"
 
 int main(int argc, char *argv[]) {
 
+    // the truth
+    LinearFunction linear(1, 2);
+
     std::vector<int> train_sizes = {0, 1, 10, 100, 1000, 10000};
-    TEfficiency eff_averaged("eff_averaged", "NN eff;training set;#epsilon", train_sizes.back() + 2, train_sizes.front() - 1, train_sizes.back() + 1);
+    int bins = train_sizes.back() + 2;
+    float lowEdge = train_sizes.front() - 1;
+    float upEdge = train_sizes.back() + 1;
+    TEfficiency eff_averaged("eff_averaged", "NN eff;training set;#epsilon", bins, lowEdge, upEdge);
 
-    std::vector<TEfficiency *> effs;
+    std::vector<std::shared_ptr<TEfficiency>> effs;
     for (int repetitions = 0; repetitions < 100; repetitions++) {
-        TEfficiency * eff = new TEfficiency("eff", "NN eff;training set;#epsilon", train_sizes.back() + 2, train_sizes.front() - 1, train_sizes.back() + 1);
+        std::shared_ptr<TEfficiency> eff = std::make_shared<TEfficiency>("eff", "NN eff;training set;#epsilon", bins, lowEdge, upEdge);
         effs.push_back(eff);
+
         for (int size : train_sizes) {
-            Perceptron percy(3, 0.01);
-            percy.initWeights();
-            std::vector<Trainer*> trainedDataset = createTrainingDataset(size);
+            NeuralNetwork nn(3, 0.01, 500, 500, linear, size);
 
-            /// train
-            for (int i = 0; i < size; i++) {
-                percy.train(trainedDataset.at(i)->inputs, trainedDataset.at(i)->answer);
-            }
+            nn.initializeNetwork();
 
-            /// test
+            nn.createTrainingDataset();
+
+            nn.train();
+
             int tries = 100;
-            for (int i = 0; i < tries; i++) {
-                std::vector<float> test = {rh.getRandomIn(-width/2, width/2), rh.getRandomIn(-height/2, height/2), 1};
-                int guess = percy.feedforward(test);
-                int above = test.at(1) > f(test.at(0)) ? 1 : -1;
-                bool success = guess * above > 0;
-                eff->Fill(success, size);
-            }
-
-            /// clean memory
-            for (int i = 0; i < size; i++) {
-                delete trainedDataset.at(i);
-            }
+            nn.test(tries, eff);
         }
         eff_averaged.Add(*eff);
     }
@@ -78,10 +43,6 @@ int main(int argc, char *argv[]) {
     eff_averaged.Draw();
     canvas.SetLogx();
     canvas.Print("nn.pdf");
-
-    for (int repetitions = 0; repetitions < 100; repetitions++) {
-        delete effs.at(repetitions);
-    }
 
     return 0;
 }

@@ -16,11 +16,14 @@ find_package(ROOT REQUIRED)
 
 include_directories(${ROOT_INCLUDE_DIRS})
 
+set (SRC_DIR src)
 set(SOURCES
     main.cpp
-    perceptron.cpp
-    trainer.cpp
-    random_helper.cpp
+    ${SRC_DIR}/perceptron.cpp
+    ${SRC_DIR}/trainer.cpp
+    ${SRC_DIR}/random_helper.cpp
+    ${SRC_DIR}/linearfunction.cpp
+    ${SRC_DIR}/neuralnetwork.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
