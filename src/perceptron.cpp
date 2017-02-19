@@ -36,13 +36,12 @@ int Perceptron::feedforward(std::vector<float> inputs) {
     if (inputs.size() != weights.size()) {
         throw std::length_error("size is different!");
     }
+
     float sum = 0;
     for (int i = 0; i < weights.size(); i++) {
-        sum += inputs.at(i)*weights.at(i);
+        sum += weights.at(i)*inputs.at(i);
     }
-    // Result is the sign of the sum, -1 or +1.
-    // Here the perceptron is making a guess.
-    // Is it on one side of the line or the other?
+
     return activate(sum);
 }
 
